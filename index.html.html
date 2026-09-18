@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>血染钟楼助手 · Blood on the Clocktower</title>
+<script>
+// CDN 脚本异步加载，加载失败不影响页面渲染（本地模式不需要任何外部脚本）
+function loadScript(srcs,onload,onerror){
+  if(typeof srcs==='string')srcs=[srcs];
+  var i=0;
+  function next(){
+    if(i>=srcs){onerror&&onerror();return}
+    var s=document.createElement('script');s.src=srcs[i];s.async=true;
+    s.onload=function(){onload&&onload()};
+    s.onerror=function(){i++;next()};
+    document.head.appendChild(s);
+  }
+  next();
+}
+window._peerReady=false;window._qrReady=false;
+// 尝试多个CDN源加载PeerJS
+loadScript([
+  'https://cdn.bootcdn.net/ajax/libs/peerjs/1.5.4/peerjs.min.js',
+  'https://lib.baomitu.com/peerjs/1.5.4/peerjs.min.js',
+  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+  'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'
+],function(){window._peerReady=true},function(){window._peerReady=false});
+// 二维码不依赖外部库，直接用API图片
+window._qrReady=true;
+window._qrApi='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=';
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d0d1a;--bg2:#1a1a2e;--card:#16213e;--card2:#1a2744;--red:#e94560;--red2:#c62828;--gold:#f5c518;--green:#4ecca3;--blue:#4e9eff;--purple:#9c5fff;--text:#eee;--text2:#999;--border:#2a3a5c;--radius:12px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+button{cursor:pointer;font-family:inherit;border:none;outline:none;transition:all .2s}
+input,select{font-family:inherit;outline:none}
+.app{max-width:900px;margin:0 auto;padding:12px}
+.header{text-align:center;padding:20px 12px 16px;border-bottom:1px solid var(--border);margin-bottom:16px;position:relative}
+.header h1{font-size:26px;color:var(--red);letter-spacing:2px;text-shadow:0 0 20px rgba(233,69,96,.3)}
+.header p{color:var(--text2);font-size:13px;margin-top:4px}
+.header .day-badge{position:absolute;right:0;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--gold);color:var(--gold);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600}
+.nav-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.nav-btn{flex:1;min-width:80px;padding:10px;background:var(--card);border:1px solid var(--border);color:var(--text2);border-radius:8px;font-size:13px;text-align:center}
+.nav-btn.active{background:var(--card2);border-color:var(--red);color:var(--red)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.card-title{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--gold);display:flex;align-items:center;gap:8px}
+.card-title .icon{font-size:20px}
+.section{margin-bottom:18px}
+.section-label{font-size:13px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.btn{display:inline-block;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;text-align:center;border:none;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(233,69,96,.4)}
+.btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#d4a017);color:#1a1a2e;font-weight:700}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,197,24,.4)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);padding:8px 14px;font-size:13px}
+.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-danger{background:var(--red2);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-lg{padding:14px 28px;font-size:16px}
+.input-field{width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:15px;margin-bottom:10px}
+.input-field:focus{border-color:var(--gold)}
+.input-field::placeholder{color:var(--text2)}
+.player-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.player-row .seat-num{width:28px;height:28px;background:var(--card2);border:1px solid var(--gold);color:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.player-row .player-name{flex:1;font-size:14px}
+.player-row .conn-status{font-size:12px;padding:2px 8px;border-radius:6px;font-weight:600}
+.conn-status.online{background:rgba(78,204,163,.15);color:var(--green)}
+.conn-status.offline{background:rgba(153,153,153,.15);color:var(--text2)}
+.player-row .remove-btn{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px}
+.room-code-display{text-align:center;padding:20px;background:var(--bg2);border:2px solid var(--gold);border-radius:12px;margin-bottom:14px}
+.room-code-display .label{font-size:13px;color:var(--text2);margin-bottom:4px}
+.room-code-display .code{font-size:40px;font-weight:900;color:var(--gold);letter-spacing:8px}
+.room-code-display .hint{font-size:12px;color:var(--text2);margin-top:6px}
+.role-reveal{text-align:center;padding:30px 20px;background:var(--bg2);border:2px solid var(--gold);border-radius:16px;margin-bottom:14px}
+.role-reveal .role-icon{font-size:60px;margin-bottom:10px}
+.role-reveal .role-name{font-size:24px;font-weight:700;margin-bottom:4px}
+.role-reveal .role-en{font-size:14px;color:var(--text2);margin-bottom:10px}
+.role-reveal .role-team{display:inline-block;padding:4px 14px;border-radius:12px;font-size:13px;font-weight:700;margin-bottom:10px}
+.role-reveal .role-desc{font-size:14px;color:var(--text);line-height:1.6;max-width:400px;margin:0 auto}
+.target-select{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0}
+.target-btn{padding:10px 16px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s}
+.target-btn:hover{border-color:var(--gold);color:var(--gold)}
+.target-btn.selected{background:var(--red);border-color:var(--red);color:#fff}
+.night-progress{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.progress-dot{width:24px;height:6px;background:var(--border);border-radius:3px;transition:all .3s}
+.progress-dot.done{background:var(--green)}
+.progress-dot.current{background:var(--gold);box-shadow:0 0 8px rgba(245,197,24,.5)}
+.day-announce{text-align:center;padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:14px}
+.day-announce h2{font-size:22px;color:var(--gold);margin-bottom:10px}
+.death-item{padding:8px 14px;background:rgba(196,40,40,.1);border:1px solid rgba(196,40,40,.3);border-radius:8px;font-size:14px;color:var(--red);margin:4px 0}
+.no-death{padding:8px 14px;background:rgba(78,204,163,.1);border:1px solid rgba(78,204,163,.3);border-radius:8px;font-size:14px;color:var(--green)}
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.player-card{padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;text-align:center}
+.player-card.dead{opacity:.4}
+.player-card.dead .pc-name{text-decoration:line-through}
+.player-card .pc-seat{font-size:11px;color:var(--gold);font-weight:700}
+.player-card .pc-name{font-size:14px;font-weight:600;margin:2px 0}
+.player-card .pc-status{font-size:11px;color:var(--text2)}
+.log-list{display:flex;flex-direction:column;gap:6px;max-height:500px;overflow-y:auto}
+.log-item{padding:8px 12px;background:var(--bg2);border-left:3px solid var(--border);border-radius:0 8px 8px 0;font-size:13px}
+.log-item.night{border-left-color:var(--purple)}
+.log-item.day{border-left-color:var(--gold)}
+.log-item.death{border-left-color:var(--red)}
+.log-item.info{border-left-color:var(--blue)}
+.log-item .log-time{font-size:11px;color:var(--text2);margin-right:6px}
+.waiting-screen{text-align:center;padding:40px 20px}
+.waiting-screen .ws-icon{font-size:48px;margin-bottom:12px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.waiting-screen .ws-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.waiting-screen .ws-msg{color:var(--text2);font-size:14px}
+.role-chip{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;display:inline-block;margin:2px}
+.role-chip.townsfolk{background:rgba(78,204,163,.15);color:var(--green)}
+.role-chip.outsider{background:rgba(156,95,255,.15);color:var(--purple)}
+.role-chip.minion{background:rgba(233,69,96,.15);color:var(--red)}
+.role-chip.demon{background:rgba(196,40,40,.2);color:#ff5252}
+.game-over{text-align:center;padding:40px 20px}
+.game-over h2{font-size:32px;margin-bottom:10px}
+.game-over.good h2{color:var(--green)}
+.game-over.evil h2{color:var(--red)}
+.reveal-all{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:20px 0}
+.reveal-card{padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;text-align:center}
+.flex-center{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.flex-between{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mt-10{margin-top:10px}.mt-14{margin-top:14px}.mt-20{margin-top:20px}
+.mb-10{margin-bottom:10px}.mb-14{margin-bottom:14px}
+.text-center{text-align:center}
+.text-gold{color:var(--gold)}.text-red{color:var(--red)}.text-green{color:var(--green)}.text-purple{color:var(--purple)}.text-muted{color:var(--text2)}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--gold);color:var(--gold);padding:10px 24px;border-radius:8px;font-size:14px;z-index:200;animation:toastIn .3s}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.mode-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.mode-card{padding:24px;background:var(--card2);border:1px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:var(--gold);transform:translateY(-2px)}
+.mode-card .mc-icon{font-size:40px;margin-bottom:8px}
+.mode-card .mc-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.mode-card .mc-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.vote-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.vote-row .vn{flex:1;font-size:14px}
+.vote-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--text2)}
+.vote-btn.yes.active{background:var(--green);color:#fff;border-color:var(--green)}
+.vote-btn.no.active{background:var(--red);color:#fff;border-color:var(--red)}
+.conn-indicator{display:inline-flex;align-items:center;gap:4px;font-size:12px}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.conn-dot.offline{background:var(--text2);animation:none}
+@media(max-width:600px){.app{padding:8px}.header h1{font-size:20px}.card{padding:14px}.btn{padding:8px 14px;font-size:13px}.player-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}.room-code-display .code{font-size:32px;letter-spacing:6px}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// ============================================================
+//  角色数据库
+// ============================================================
+const ROLES = {
+  washerwoman:{name:'洗衣妇',en:'Washerwoman',team:'good',type:'townsfolk',icon:'🧺',firstNight:true,otherNights:false,nightOrderFirst:4,nightOrderOther:0,ability:'游戏开始时，你得知2名玩家中有1名是特定镇民角色。',desc:'你在游戏开始时获得一条信息：2名玩家中有1名是某个镇民角色。'},
+  librarian:{name:'图书管理员',en:'Librarian',team:'good',type:'townsfolk',icon:'📚',firstNight:true,otherNights:false,nightOrderFirst:5,nightOrderOther:0,ability:'游戏开始时，你得知2名玩家中有1名是特定外来者角色。',desc:'你在游戏开始时获得一条信息：2名玩家中有1名是某个外来者角色。'},
+  investigator:{name:'调查员',en:'Investigator',team:'good',type:'townsfolk',icon:'🔍',firstNight:true,otherNights:false,nightOrderFirst:6,nightOrderOther:0,ability:'游戏开始时，你得知2名玩家中有1名是特定爪牙角色。',desc:'你在游戏开始时获得一条信息：2名玩家中有1名是某个爪牙角色。'},
+  chef:{name:'厨师',en:'Chef',team:'good',type:'townsfolk',icon:'👨‍🍳',firstNight:true,otherNights:false,nightOrderFirst:7,nightOrderOther:0,ability:'游戏开始时，你得知邪恶玩家相邻坐着的对数。',desc:'你在游戏开始时得知一个数字，代表场上邪恶玩家中相邻坐着的对数。'},
+  empath:{name:'共情者',en:'Empath',team:'good',type:'townsfolk',icon:'💞',firstNight:true,otherNights:true,nightOrderFirst:8,nightOrderOther:2,ability:'每夜，你得知存活的邻居中有多少邪恶玩家。',desc:'每天夜晚，你得知你左右两侧存活的邻居中，有多少是邪恶阵营的玩家。'},
+  fortune_teller:{name:'算命师',en:'Fortune Teller',team:'good',type:'townsfolk',icon:'🔮',firstNight:true,otherNights:true,nightOrderFirst:9,nightOrderOther:3,ability:'每夜，选择2名玩家，你得知其中是否有恶魔。',desc:'每天夜晚，你选择2名玩家，说书人告诉你其中是否有恶魔。'},
+  undertaker:{name:'掘墓人',en:'Undertaker',team:'good',type:'townsfolk',icon:'⚰️',firstNight:false,otherNights:true,nightOrderFirst:0,nightOrderOther:4,ability:'每夜，你得知白天被处决的玩家的角色。',desc:'每天夜晚，如果白天有人被处决，你得知被处决者的角色。'},
+  monk:{name:'僧侣',en:'Monk',team:'good',type:'townsfolk',icon:'🧘',firstNight:false,otherNights:true,nightOrderFirst:0,nightOrderOther:5,ability:'每夜，选择1名玩家（不能是自己），保护其免受恶魔攻击。',desc:'每天夜晚，你选择1名玩家（不能是你自己），该玩家在今晚受到保护。'},
+  ravenkeeper:{name:'养鸦人',en:'Ravenkeeper',team:'good',type:'townsfolk',icon:'🐦',firstNight:false,otherNights:true,nightOrderFirst:0,nightOrderOther:6,ability:'如果你被恶魔杀死，你可以选择1名玩家并得知其角色。',desc:'如果你在夜间被恶魔杀死，你可以立即选择1名玩家，得知他的角色。'},
+  virgin:{name:'处女',en:'Virgin',team:'good',type:'townsfolk',icon:'👸',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'如果处女被镇民提名，提名者立即被处决。',desc:'如果处女被一个镇民角色的玩家提名，提名者立即被处决。'},
+  slayer:{name:'屠夫',en:'Slayer',team:'good',type:'townsfolk',icon:'⚔️',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'白天，你可以公开指认1名玩家，如果是恶魔则其死亡。每局一次。',desc:'在白天，你可以公开宣布指认1名玩家。如果该玩家是恶魔，他立即死亡。每局只能使用一次。'},
+  soldier:{name:'士兵',en:'Soldier',team:'good',type:'townsfolk',icon:'🛡️',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'你免疫恶魔的攻击。',desc:'你不会被恶魔在夜间杀死。除非你被毒药师毒害。'},
+  mayor:{name:'镇长',en:'Mayor',team:'good',type:'townsfolk',icon:'🎩',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'如果第3天及后无人被处决且镇长存活，好人获胜。',desc:'如果到了第3天或之后，某天没有人被处决且镇长存活，好人阵营直接获胜。'},
+  clockmaker:{name:'钟表匠',en:'Clockmaker',team:'good',type:'townsfolk',icon:'🕐',firstNight:true,otherNights:false,nightOrderFirst:2,nightOrderOther:0,ability:'游戏开始时，你得知恶魔还需杀死多少名玩家才能获胜。',desc:'你在游戏开始时得知一个数字，代表恶魔还需要杀死多少名玩家才能让邪恶阵营获胜。'},
+  seamstress:{name:'裁缝',en:'Seamstress',team:'good',type:'townsfolk',icon:'🧵',firstNight:true,otherNights:false,nightOrderFirst:3,nightOrderOther:0,ability:'游戏开始时，选择2名玩家，你得知他们是否在同一阵营。',desc:'你在游戏开始时选择2名玩家，说书人告诉你他们是否在同一阵营。'},
+  recluse:{name:'隐士',en:'Recluse',team:'good',type:'outsider',icon:'🧙',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'你可能被误认为是邪恶角色。',desc:'你虽然是好人阵营，但说书人可能会在各种检测中将你显示为邪恶角色。'},
+  saint:{name:'圣人',en:'Saint',team:'good',type:'outsider',icon:'😇',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'如果圣人被处决，邪恶阵营立即获胜。',desc:'如果你被白天投票处决，邪恶阵营立即获胜。'},
+  drunk:{name:'醉鬼',en:'Drunk',team:'good',type:'outsider',icon:'🍺',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'你不知道自己是醉鬼。你的能力无效。',desc:'你被告知是一个镇民角色，但实际上你是醉鬼。你的角色能力完全不生效。'},
+  butler:{name:'管家',en:'Butler',team:'good',type:'outsider',icon:'🤵',firstNight:true,otherNights:true,nightOrderFirst:10,nightOrderOther:7,ability:'每夜，选择1名玩家作为主人。白天你只能跟随主人投票。',desc:'每天夜晚，你选择1名玩家作为你的主人。在白天的投票中，你只能和主人投相同的票。'},
+  poisoner:{name:'毒药师',en:'Poisoner',team:'evil',type:'minion',icon:'🧪',firstNight:true,otherNights:true,nightOrderFirst:1,nightOrderOther:1,ability:'每夜，选择1名玩家毒害。被毒害的玩家当晚和次日能力失效。',desc:'每天夜晚，你选择1名玩家进行毒害。被毒害的玩家在当晚和第二天的能力完全失效。'},
+  spy:{name:'间谍',en:'Spy',team:'evil',type:'minion',icon:'🕵️',firstNight:true,otherNights:true,nightOrderFirst:99,nightOrderOther:99,ability:'每夜，你得知所有邪恶玩家。你可以在夜晚代替恶魔杀人。',desc:'每天夜晚，你得知所有邪恶阵营的玩家是谁。你在各种检测中可能被误判为好人。'},
+  scarlet_woman:{name:'红衣女郎',en:'Scarlet Woman',team:'evil',type:'minion',icon:'💃',firstNight:false,otherNights:true,nightOrderFirst:0,nightOrderOther:8,ability:'如果恶魔死亡且存活玩家≥5名，你立即成为新的恶魔。',desc:'如果恶魔死亡且场上仍有5名或以上存活玩家，你立即变成新的小恶魔。'},
+  baron:{name:'男爵',en:'Baron',team:'evil',type:'minion',icon:'🎩',firstNight:false,otherNights:false,nightOrderFirst:0,nightOrderOther:0,ability:'游戏开始时，2个镇民角色被交换为外来者角色。',desc:'在游戏设置阶段，2个原本应该是镇民的位置变为外来者。'},
+  imp:{name:'小恶魔',en:'Imp',team:'evil',type:'demon',icon:'😈',firstNight:false,otherNights:true,nightOrderFirst:0,nightOrderOther:9,ability:'每夜，选择1名玩家杀死。如果你杀死自己，另1名玩家成为新的小恶魔。',desc:'每天夜晚，你选择1名玩家将其杀死。如果你选择杀死自己，你死亡，然后你选择1名存活的玩家成为新的小恶魔。'}
+};
+
+const SETUP_CONFIG={5:{demon:1,minion:1,townsfolk:3,outsider:0},6:{demon:1,minion:1,townsfolk:4,outsider:0},7:{demon:1,minion:1,townsfolk:5,outsider:0},8:{demon:1,minion:2,townsfolk:4,outsider:1},9:{demon:1,minion:2,townsfolk:5,outsider:1},10:{demon:1,minion:2,townsfolk:6,outsider:1},11:{demon:1,minion:2,townsfolk:6,outsider:2},12:{demon:1,minion:3,townsfolk:7,outsider:1},13:{demon:1,minion:3,townsfolk:7,outsider:2},14:{demon:1,minion:3,townsfolk:8,outsider:2},15:{demon:1,minion:3,townsfolk:8,outsider:3}};
+
+// ============================================================
+//  工具函数
+// ============================================================
+function $(id){return document.getElementById(id)}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500)}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function alivePlayers(){return game.players.filter(p=>p.alive)}
+function getPlayer(id){return game.players.find(p=>p.id===id)}
+function teamColor(team){return team==='good'?'var(--green)':'var(--red)'}
+function teamName(team){return team==='good'?'好人阵营':'邪恶阵营'}
+function typeName(type){return{townsfolk:'镇民',outsider:'外来者',minion:'爪牙',demon:'恶魔'}[type]||type}
+function isPoisoned(pid){return game.poisonedPlayer===pid}
+function isProtected(pid){return game.protectedPlayer===pid}
+function isEvil(pid){const p=getPlayer(pid);return p&&p.roleData.team==='evil'}
+function getNeighbors(pid){const a=alivePlayers();const i=a.findIndex(p=>p.id===pid);if(i===-1||a.length<2)return[];return[a[(i-1+a.length)%a.length],a[(i+1)%a.length]].filter(Boolean)}
+function logEvent(type,msg){game.log.push({type,msg,time:`第${game.day}${game.phase==='night'?'夜':'天'}`})}
+
+// ============================================================
+//  游戏状态
+// ============================================================
+let game={
+  mode:'home',day:0,phase:'home',players:[],roleList:[],outsiderModifier:0,
+  nightStep:0,nightActions:[],nominations:[],executedToday:null,
+  poisonedPlayer:null,protectedPlayer:null,log:[],slayerUsed:false,winner:null
+};
+let peer=null,conns={},pendingResponse=null;
+
+// ============================================================
+//  角色分配
+// ============================================================
+function generateRoleList(){
+  const count=game.players.length;
+  const config={...SETUP_CONFIG[count]};
+  config.outsider=Math.max(0,config.outsider+game.outsiderModifier);
+  config.townsfolk=count-config.demon-config.minion-config.outsider;
+  if(config.townsfolk<0){toast('外来者过多');return null}
+  const pool={townsfolk:[],outsider:[],minion:[],demon:[]};
+  for(const[k,r]of Object.entries(ROLES))pool[r.type].push(k);
+  let selected=[...shuffle(pool.demon).slice(0,config.demon),...shuffle(pool.minion).slice(0,config.minion),...shuffle(pool.outsider).slice(0,config.outsider),...shuffle(pool.townsfolk).slice(0,config.townsfolk)];
+  while(selected.length<count&&pool.outsider.length>0){const e=shuffle(pool.outsider).find(r=>!selected.includes(r));if(e)selected.push(e);else break}
+  while(selected.length<count){const e=shuffle(pool.townsfolk).find(r=>!selected.includes(r));if(e)selected.push(e);else break}
+  return{selected,config}
+}
+function assignRoles(){
+  const r=generateRoleList();if(!r)return false;
+  const sh=shuffle(r.selected);
+  game.players.forEach((p,i)=>{p.role=sh[i];p.roleData=ROLES[sh[i]];p.alive=true;p.usedGhostVote=false});
+  game.roleList=r.selected;
+  logEvent('info',`游戏开始！${game.players.length}名玩家参与。`);
+  return true
+}
+function getNightActions(firstNight){
+  const actions=[];
+  for(const[k,r]of Object.entries(ROLES)){
+    const act=firstNight?r.firstNight:r.otherNights;if(!act)continue;
+    const order=firstNight?r.nightOrderFirst:r.nightOrderOther;if(order===0)continue;
+    game.players.filter(p=>p.role===k&&p.alive&&!isPoisoned(p.id)).forEach(p=>actions.push({roleKey:k,role:r,player:p,order}));
+  }
+  const spy=game.players.find(p=>p.role==='spy'&&p.alive);
+  if(spy)actions.push({roleKey:'spy',role:ROLES.spy,player:spy,order:99});
+  actions.sort((a,b)=>a.order-b.order);
+  return actions
+}
+
+// ============================================================
+//  信息计算
+// ============================================================
+function calcChefInfo(){let n=0;const ps=game.players;for(let i=0;i<ps.length;i++)if(isEvil(ps[i].id)&&isEvil(ps[(i+1)%ps.length].id))n++;return n}
+function calcEmpathInfo(pid){return getNeighbors(pid).filter(n=>isEvil(n.id)).length}
+function calcClockmakerInfo(){return Math.max(0,alivePlayers().length-2)}
+function calcFortuneTellerInfo(t1,t2){const p1=getPlayer(t1),p2=getPlayer(t2);if(!p1||!p2)return false;if(p1.role==='imp'||p2.role==='imp')return true;if(p1.role==='recluse'||p2.role==='recluse')return Math.random()<.3;return false}
+function calcSeamstressInfo(t1,t2){const p1=getPlayer(t1),p2=getPlayer(t2);return p1&&p2&&p1.roleData.team===p2.roleData.team}
+
+// ============================================================
+//  胜利检测
+// ============================================================
+function checkWin(){
+  const alive=alivePlayers();
+  if(!alive.find(p=>p.role==='imp')){const sw=alive.find(p=>p.role==='scarlet_woman');if(!sw||alive.length<5)return'good'}
+  if(alive.length<=2)return'evil';
+  if(game.day>=3&&!game.executedToday&&alive.find(p=>p.role==='mayor'))return'good';
+  return null
+}
+
+// ============================================================
+//  渲染 - 通用
+// ============================================================
+function renderHeader(){
+  let h=`<div class="header"><h1>🩸 血染钟楼</h1><p>Blood on the Clocktower</p>`;
+  if(game.phase!=='home'&&game.phase!=='setup'&&game.phase!=='assign'&&game.phase!=='lobby')h+=`<div class="day-badge">${game.phase==='night'?'🌙':'☀️'} 第${game.day}${game.phase==='night'?'夜':'天'}</div>`;
+  h+=`</div>`;return h
+}
+
+// ============================================================
+//  首页 - 模式选择
+// ============================================================
+function renderHome(){
+  game.phase='home';
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🏰</span> 选择模式</div>
+      <div class="mode-grid">
+        <div class="mode-card" id="mode-storyteller">
+          <div class="mc-icon">🎙️</div>
+          <div class="mc-title">我是说书人</div>
+          <div class="mc-desc">创建房间，管理游戏全流程<br>所有玩家用各自手机加入</div>
+        </div>
+        <div class="mode-card" id="mode-player">
+          <div class="mc-icon">👤</div>
+          <div class="mc-title">我是玩家</div>
+          <div class="mc-desc">输入房间号加入游戏<br>在自己的手机上查看角色和行动</div>
+        </div>
+        <div class="mode-card" id="mode-local">
+          <div class="mc-icon">📱</div>
+          <div class="mc-title">本地模式</div>
+          <div class="mc-desc">单设备操作，传递给每位玩家<br>适合无网络环境</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📖</span> 角色一览</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${Object.values(ROLES).map(r=>`<span class="role-chip ${r.type}">${r.icon} ${r.name}</span>`).join('')}
+      </div>
+      <div class="mt-10 text-center"><button class="btn btn-ghost" id="show-roles">查看角色详情</button></div>
+    </div>
+  `;
+  $('mode-storyteller').addEventListener('click',initStoryteller);
+  $('mode-player').addEventListener('click',initPlayer);
+  $('mode-local').addEventListener('click',initLocal);
+  $('show-roles').addEventListener('click',showRoleRef);
+}
+
+// ============================================================
+//  说书人模式
+// ============================================================
+function initStoryteller(){
+  game.mode='storyteller';
+  game.phase='lobby';
+  game.players=[];
+  for(let i=0;i<8;i++)game.players.push({id:i,seat:i+1,name:'',role:'',roleData:null,alive:true,usedGhostVote:false,peerId:null});
+  const roomCode=Math.floor(1000+Math.random()*9000).toString();
+  game.roomCode=roomCode;
+
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🎙️</span> 说书人模式</div>
+      <div class="room-code-display">
+        <div class="label">房间号（告诉玩家）</div>
+        <div class="code">${roomCode}</div>
+        <div class="hint">玩家在"我是玩家"中输入此号码加入</div>
+      </div>
+      <div id="qr-area" style="text-align:center;margin:10px 0">
+        <div id="qrcode" style="display:inline-block;padding:12px;background:#fff;border-radius:12px"></div>
+        <p class="text-muted" style="font-size:12px;margin-top:6px">扫码直接进入加入页面</p>
+      </div>
+      <div class="flex-center gap-8 mb-10">
+        <button class="btn btn-ghost btn-sm" id="copy-link">📋 复制链接</button>
+        <button class="btn btn-ghost btn-sm" id="share-link">📤 分享链接</button>
+      </div>
+      <div class="conn-indicator" id="peer-status">
+        <span class="conn-dot offline" id="peer-dot"></span>
+        <span id="peer-status-text">正在建立连接...</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⚙️</span> 玩家设置</div>
+      <div class="flex-center mb-10">
+        <button class="btn btn-secondary btn-sm" id="remove-player">➖ 减少玩家</button>
+        <span class="text-muted">当前：<span class="text-gold" style="font-size:18px;font-weight:700" id="pcount">${game.players.length}</span> 人</span>
+        <button class="btn btn-secondary btn-sm" id="add-player">➕ 增加玩家</button>
+      </div>
+      <div id="player-list"></div>
+      <div class="section">
+        <div class="section-label">外来者数量调整</div>
+        <div class="flex-center gap-8">
+          <button class="btn btn-secondary btn-sm" id="out-minus">➖</button>
+          <span class="text-gold" style="font-size:20px;font-weight:700" id="out-val">${game.outsiderModifier>=0?'+':''}${game.outsiderModifier}</span>
+          <button class="btn btn-secondary btn-sm" id="out-plus">➕</button>
+        </div>
+      </div>
+      <div class="flex-center mt-14">
+        <button class="btn btn-ghost" id="back-home">← 返回</button>
+        <button class="btn btn-gold btn-lg" id="start-game">🎲 分配角色并开始 →</button>
+      </div>
+    </div>
+  `;
+  renderStPlayerList();
+
+  // 生成二维码
+  try{
+    const gameUrl=location.href.split('#')[0]+'#player='+roomCode;
+    game.gameUrl=gameUrl;
+    if(window._qrReady){
+      $('qrcode').innerHTML='<img src="'+window._qrApi+encodeURIComponent(gameUrl)+'" width="180" height="180" alt="QR Code" style="border-radius:8px" onerror="this.parentElement.innerHTML=\'<p class=text-muted style=font-size:12px>二维码加载失败<br>请手动输入房间号</p>\'">';
+    }else{
+      $('qrcode').innerHTML='<p class="text-muted" style="font-size:12px">二维码加载失败<br>请手动输入房间号</p>';
+    }
+    $('copy-link').addEventListener('click',()=>{
+      navigator.clipboard.writeText(gameUrl).then(()=>toast('链接已复制到剪贴板！')).catch(()=>{
+        const ta=document.createElement('textarea');ta.value=gameUrl;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('链接已复制！');
+      });
+    });
+    $('share-link').addEventListener('click',()=>{
+      if(navigator.share){navigator.share({title:'血染钟楼',text:'加入游戏',url:gameUrl}).catch(()=>{})}
+      else{navigator.clipboard.writeText(gameUrl).then(()=>toast('链接已复制！')).catch(()=>toast('请手动复制链接'))}
+    });
+  }catch(e){$('qr-area').style.display='none'}
+
+  // 处理URL hash中的房间号（玩家扫码后自动填入）
+  if(location.hash&&location.hash.startsWith('#player=')){
+    const code=location.hash.substring(8);
+    setTimeout(()=>{initPlayer();$('room-code').value=code;$('player-name').focus()},100);
+  }
+
+  // 创建PeerJS连接
+  if(!window._peerReady||typeof Peer==='undefined'){
+    $('peer-status-text').textContent='网络库加载失败，建议使用本地模式';
+    $('peer-dot').classList.add('offline');
+    toast('联网库加载失败，可使用本地模式');
+  }else{
+  try{
+    peer=new Peer(`botc-${roomCode}`,{
+      secure:true,
+      config:{iceServers:[
+        {urls:'stun:stun.l.google.com:19302'},
+        {urls:'stun:stun1.l.google.com:19302'},
+        {urls:'stun:stun2.l.google.com:19302'},
+        {urls:'stun:stunserver.org:3478'},
+        {urls:'stun:stun.qq.com:3478'},
+        {urls:'stun:stun.miwifi.com:3478'},
+        {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:8443',username:'openrelayproject',credential:'openrelayproject'}
+      ]}
+    });
+    peer.on('open',()=>{$('peer-dot').classList.remove('offline');$('peer-status-text').textContent='已连接，等待玩家加入...'});
+    peer.on('error',(err)=>{
+      console.error('PeerJS error:',err);
+      const et=err.type||'unknown';
+      if(et==='unavailable-id'){$('peer-status-text').textContent='房间号已存在，正在重试...';setTimeout(()=>{if(peer){peer.destroy();peer=null}const nc=Math.floor(1000+Math.random()*9000).toString();game.roomCode=nc;$('app').querySelector('.code').textContent=nc;initStoryteller()},2000)}
+      else if(et==='network'||et==='server-error'||et==='socket-error'){$('peer-status-text').textContent='网络异常，正在重连...';try{peer.reconnect()}catch(e){toast('网络异常，建议使用本地模式')}}
+      else{$('peer-status-text').textContent='连接异常（'+et+'），可使用本地模式';toast('网络异常：'+et)}
+    });
+    peer.on('disconnected',()=>{$('peer-status-text').textContent='断线，重连中...';try{peer.reconnect()}catch(e){}});
+    peer.on('connection',(conn)=>{
+      conn.on('open',()=>{});
+      conn.on('data',(data)=>{
+        if(data.type==='join')handlePlayerJoin(conn,data.name);
+        else if(data.type==='night_response')handlePlayerResponse(conn,data);
+        else if(data.type==='night_response_multi')handlePlayerResponseMulti(conn,data);
+        else if(data.type==='night_skip')handlePlayerResponse(conn,data);
+        else if(data.type==='vote')handlePlayerVote(conn,data);
+      });
+      conn.on('close',()=>{
+        const p=game.players.find(pp=>pp.peerId===conn.peer);
+        if(p){p.peerId=null;renderStPlayerList();toast(`${p.name||('座位'+p.seat)} 断开连接`)}
+      });
+    });
+  }catch(e){toast('网络初始化失败，请使用本地模式')}
+  }
+
+  // 按钮事件
+  $('remove-player').addEventListener('click',()=>{if(game.players.length>5){game.players.pop();renderStPlayerList();$('pcount').textContent=game.players.length}});
+  $('add-player').addEventListener('click',()=>{if(game.players.length<15){const id=Math.max(...game.players.map(p=>p.id),-1)+1;game.players.push({id,seat:game.players.length+1,name:'',role:'',roleData:null,alive:true,usedGhostVote:false,peerId:null});renderStPlayerList();$('pcount').textContent=game.players.length}else toast('最多15人')});
+  $('out-minus').addEventListener('click',()=>{if(game.outsiderModifier>-2){game.outsiderModifier--;$('out-val').textContent=(game.outsiderModifier>=0?'+':'')+game.outsiderModifier}});
+  $('out-plus').addEventListener('click',()=>{if(game.outsiderModifier<3){game.outsiderModifier++;$('out-val').textContent=(game.outsiderModifier>=0?'+':'')+game.outsiderModifier}});
+  $('back-home').addEventListener('click',()=>{if(peer)peer.destroy();renderHome()});
+  $('start-game').addEventListener('click',startStorytellerGame);
+}
+
+function renderStPlayerList(){
+  const c=$('player-list');if(!c)return;
+  c.innerHTML=game.players.map((p,i)=>`
+    <div class="player-row">
+      <div class="seat-num">${p.seat}</div>
+      <input class="input-field" style="flex:1;margin:0;padding:6px 10px;font-size:14px" placeholder="玩家${p.seat}姓名" value="${p.name}" data-idx="${i}" data-field="name">
+      <span class="conn-status ${p.peerId?'online':'offline'}" id="conn-${p.id}">${p.peerId?'已连接':'未连接'}</span>
+    </div>
+  `).join('');
+  c.querySelectorAll('input[data-field="name"]').forEach(inp=>{
+    inp.addEventListener('input',e=>{game.players[parseInt(e.target.dataset.idx)].name=e.target.value});
+  });
+}
+
+function handlePlayerJoin(conn,name){
+  // 找到匹配名字的玩家，或第一个未连接的玩家
+  let player=game.players.find(p=>p.name===name&&!p.peerId);
+  if(!player)player=game.players.find(p=>!p.peerId);
+  if(!player){conn.send({type:'error',msg:'房间已满'});return}
+  player.peerId=conn.peer;
+  conns[player.id]=conn;
+  conn.send({type:'join_ack',seat:player.seat,playerId:player.id});
+  renderStPlayerList();
+  toast(`${name} 已加入（座位${player.seat}）`);
+}
+
+function startStorytellerGame(){
+  const empty=game.players.filter(p=>!p.name.trim());
+  if(empty.length>0){toast('请填写所有玩家姓名');return}
+  if(!assignRoles())return;
+  game.phase='assign';
+  // 发送角色给已连接的玩家
+  game.players.forEach(p=>{
+    if(p.peerId&&conns[p.id]){
+      conns[p.id].send({type:'role',roleKey:p.role,roleData:p.roleData});
+    }
+  });
+  showStAssignSummary();
+}
+
+function showStAssignSummary(){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🎭</span> 角色分配完成</div>
+      <div class="section-label">各玩家角色（仅说书人可见）</div>
+      ${game.players.map(p=>`
+        <div class="player-row">
+          <div class="seat-num">${p.seat}</div>
+          <div class="player-name">${p.name}</div>
+          <span class="role-chip ${p.roleData.type}">${p.roleData.icon} ${p.roleData.name}</span>
+          <span class="conn-status ${p.peerId?'online':'offline'}">${p.peerId?'手机已连接':'手机未连接'}</span>
+        </div>
+      `).join('')}
+      <div class="divider"></div>
+      <p class="text-muted text-center" style="font-size:13px">已连接的玩家会在手机上看到自己的角色<br>未连接的玩家由说书人线下告知角色</p>
+      <div class="flex-center mt-14">
+        <button class="btn btn-gold btn-lg" id="start-night">🌙 开始第一个夜晚 →</button>
+      </div>
+    </div>
+  `;
+  $('start-night').addEventListener('click',startStorytellerNight);
+}
+
+function startStorytellerNight(){
+  game.phase='night';
+  game.day++;
+  game.nightStep=0;
+  game.nightActions=getNightActions(game.day===1);
+  game.nominations=[];
+  game.executedToday=null;
+  game.poisonedPlayer=null;
+  game.protectedPlayer=null;
+  game.players.forEach(p=>{p.nominatedToday=false;p.wasNominatedToday=false});
+  logEvent('night',`第${game.day}夜降临，所有人闭眼。`);
+  // 通知所有玩家
+  broadcastAll({type:'night_start',day:game.day});
+  processStNightAction();
+}
+
+function processStNightAction(){
+  if(game.nightStep>=game.nightActions.length){finishStNight();return}
+  const action=game.nightActions[game.nightStep];
+  const{roleKey,role,player}=action;
+  if(!player.alive||isPoisoned(player.id)){game.nightStep++;processStNightAction();return}
+
+  const connected=player.peerId&&conns[player.id];
+  if(connected){
+    // 发送行动请求到玩家手机
+    const targets=alivePlayers().filter(p=>p.id!==player.id||roleKey==='imp');
+    const targetList=roleKey==='fortune_teller'||roleKey==='seamstress'
+      ?alivePlayers().map(p=>({id:p.id,name:p.name,seat:p.seat}))
+      :targets.map(p=>({id:p.id,name:p.name,seat:p.seat}));
+
+    const isInfo=needPlayerChoice(roleKey);
+    conns[player.id].send({type:'night_action',roleKey,roleName:role.name,roleIcon:role.icon,prompt:getNightPrompt(roleKey),targets:isInfo?[]:targetList,isInfo:!isInfo});
+
+    // 说书人屏幕显示等待
+    showStWaitingForPlayer(action);
+  }else{
+    // 未连接，说书人代操作
+    showStLocalAction(action);
+  }
+}
+
+function needPlayerChoice(roleKey){
+  return['poisoner','monk','imp','fortune_teller','seamstress','ravenkeeper','butler'].includes(roleKey);
+}
+
+function getNightPrompt(roleKey){
+  const prompts={
+    poisoner:'请选择要毒害的玩家',monk:'请选择要保护的玩家（不能是自己）',
+    imp:'请选择要杀死的玩家（可以选你自己）',fortune_teller:'请选择2名玩家进行检测',
+    seamstress:'请选择2名玩家检测是否同阵营',undertaker:'今天被处决的玩家的角色',
+    ravenkeeper:'你已被杀死！选择1名玩家查看其角色',butler:'请选择你的主人',
+    empath:'你的存活邻居中有多少邪恶玩家',chef:'邪恶玩家相邻的对数',
+    clockmaker:'恶魔还需杀死多少名玩家',washerwoman:'2名玩家中有1名是特定镇民',
+    librarian:'2名玩家中有1名是特定外来者',investigator:'2名玩家中有1名是特定爪牙',
+    spy:'你得知所有邪恶玩家',scarlet_wwoman:'检测恶魔是否已死亡'
+  };
+  return prompts[roleKey]||'执行你的角色能力';
+}
+
+function showStWaitingForPlayer(action){
+  const{roleKey,role,player}=action;
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🌙</span> 第${game.day}夜 · ${role.name}</div>
+      <div class="night-progress">${game.nightActions.map((a,i)=>`<div class="progress-dot ${i<game.nightStep?'done':i===game.nightStep?'current':''}"></div>`).join('')}</div>
+      <div class="text-center text-muted mb-10" style="font-size:12px">第 ${game.nightStep+1} / ${game.nightActions.length} 步</div>
+      <div class="waiting-screen">
+        <div class="ws-icon">${role.icon}</div>
+        <div class="ws-title">等待 ${player.name} 操作</div>
+        <div class="ws-msg">座位 ${player.seat} · ${role.name}<br>正在手机上执行行动...</div>
+      </div>
+      <div class="divider"></div>
+      <div class="flex-center gap-8">
+        <button class="btn btn-ghost" id="st-manual">✋ 我来替TA操作</button>
+        <button class="btn btn-ghost" id="st-skip">⏭️ 跳过此步</button>
+      </div>
+    </div>
+  `;
+  $('st-manual').addEventListener('click',()=>{showStLocalAction(action)});
+  $('st-skip').addEventListener('click',()=>{game.nightStep++;processStNightAction()});
+}
+
+function showStLocalAction(action){
+  const{roleKey,role,player}=action;
+  const others=alivePlayers().filter(p=>p.id!==player.id);
+  const all=alivePlayers();
+
+  let infoHtml='';
+  if(roleKey==='empath'){const c=calcEmpathInfo(player.id);const n=getNeighbors(player.id);infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">存活邻居中有 <span class="text-gold" style="font-size:24px">${c}</span> 名邪恶玩家<br><span style="font-size:12px">邻居：${n.map(x=>x.name).join('、')}</span></div></div>`}
+  else if(roleKey==='chef'){infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">邪恶玩家相邻 <span class="text-gold" style="font-size:24px">${calcChefInfo()}</span> 对</div></div>`}
+  else if(roleKey==='clockmaker'){infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">恶魔还需杀死 <span class="text-gold" style="font-size:24px">${calcClockmakerInfo()}</span> 名玩家</div></div>`}
+  else if(roleKey==='undertaker'){let info='今天没有人被处决';if(game.executedToday){const ex=getPlayer(game.executedToday);info=`今天被处决的是 ${ex.name}，角色是 ${ex.roleData.name}`}infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">${info}</div></div>`}
+  else if(roleKey==='washerwoman'||roleKey==='librarian'||roleKey==='investigator'){const tt={washerwoman:'townsfolk',librarian:'outsider',investigator:'minion'}[roleKey];const tn={washerwoman:'镇民',librarian:'外来者',investigator:'爪牙'}[roleKey];const cands=game.players.filter(p=>p.roleData.type===tt&&p.alive);let info='说书人请给出信息';if(cands.length>0){const real=shuffle(cands)[0];const other=shuffle(game.players.filter(p=>p.id!==real.id&&p.alive))[0];const pair=shuffle([real,other]);info=`${pair.map(p=>p.name).join(' 和 ')} 中有1名是 ${tn}`}infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">${info}</div></div>`}
+  else if(roleKey==='spy'){const evil=game.players.filter(p=>p.roleData.team==='evil');infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">邪恶玩家：${evil.map(p=>p.name+'('+p.roleData.name+')').join('、')}</div></div>`}
+  else if(roleKey==='scarlet_woman'){const dd=game.players.find(p=>p.role==='imp'&&!p.alive);const ac=alivePlayers().length;infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="${dd&&ac>=5?'death-item':'no-death'}">${dd&&ac>=5?`${player.name}成为新的小恶魔！`:'条件不满足'}</div></div>`}
+  else{
+    // 需要选择目标
+    const targets=roleKey==='imp'?all:others;
+    const multi=roleKey==='fortune_teller'||roleKey==='seamstress';
+    infoHtml=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><p class="text-muted">${getNightPrompt(roleKey)}</p></div>
+    <div class="target-select" id="st-targets">${targets.map(p=>`<div class="target-btn" data-id="${p.id}">座位${p.seat} ${p.name}</div>`).join('')}</div>`
+  }
+
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🌙</span> 第${game.day}夜 · ${role.name}</div>
+      <div class="night-progress">${game.nightActions.map((a,i)=>`<div class="progress-dot ${i<game.nightStep?'done':i===game.nightStep?'current':''}"></div>`).join('')}</div>
+      ${infoHtml}
+      <div class="flex-center mt-14 gap-8">
+        <button class="btn btn-gold" id="st-confirm" ${needPlayerChoice(roleKey)?'disabled':''}>✓ 确认</button>
+        <button class="btn btn-ghost" id="st-skip">⏭️ 跳过</button>
+      </div>
+    </div>
+  `;
+
+  let selected=[];
+  const multi=roleKey==='fortune_teller'||roleKey==='seamstress';
+  document.querySelectorAll('#st-targets .target-btn')?.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(multi){
+        const id=btn.dataset.id;
+        if(selected.includes(id)){selected=selected.filter(s=>s!==id);btn.classList.remove('selected')}
+        else{if(selected.length>=2)return;selected.push(id);btn.classList.add('selected')}
+      }else{
+        document.querySelectorAll('#st-targets .target-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');selected=[btn.dataset.id];
+      }
+      $('st-confirm').disabled=selected.length===0;
+    });
+  });
+
+  $('st-confirm').addEventListener('click',()=>{
+    const ids=selected.map(s=>parseInt(s));
+    if(roleKey==='poisoner'){game.poisonedPlayer=ids[0];logEvent('night',`毒药师毒害了 ${getPlayer(ids[0]).name}`)}
+    else if(roleKey==='monk'){game.protectedPlayer=ids[0];logEvent('night',`僧侣保护了 ${getPlayer(ids[0]).name}`)}
+    else if(roleKey==='imp'){handleImpKill(player,ids[0]);return}
+    else if(roleKey==='fortune_teller'){const r=calcFortuneTellerInfo(ids[0],ids[1]);logEvent('night',`算命师检测：${r?'有恶魔':'无恶魔'}`);toast(`结果：${r?'有恶魔':'无恶魔'}`)}
+    else if(roleKey==='seamstress'){const r=calcSeamstressInfo(ids[0],ids[1]);logEvent('night',`裁缝检测：${r?'同阵营':'不同阵营'}`);toast(`结果：${r?'同阵营':'不同阵营'}`)}
+    else if(roleKey==='ravenkeeper'){const t=getPlayer(ids[0]);logEvent('night',`养鸦人查看 ${t.name}：${t.roleData.name}`);toast(`${t.name} 是 ${t.roleData.name}`)}
+    else if(roleKey==='butler'){player.master=ids[0];logEvent('night',`管家选择了 ${getPlayer(ids[0]).name} 作为主人`)}
+    game.nightStep++;processStNightAction();
+  });
+  $('st-skip').addEventListener('click',()=>{game.nightStep++;processStNightAction()});
+}
+
+function handlePlayerResponse(conn,data){
+  const player=game.players.find(p=>p.peerId===conn.peer);
+  if(!player)return;
+  const action=game.nightActions[game.nightStep];
+  if(!action)return;
+  const{roleKey}=action;
+  if(data.type==='night_skip'){
+    logEvent('night',`${player.name}（${ROLES[roleKey].name}）跳过了行动`);
+    game.nightStep++;processStNightAction();return;
+  }
+  const targetId=data.targetId;
+  if(roleKey==='poisoner'){game.poisonedPlayer=targetId;logEvent('night',`毒药师毒害了 ${getPlayer(targetId).name}`)}
+  else if(roleKey==='monk'){game.protectedPlayer=targetId;logEvent('night',`僧侣保护了 ${getPlayer(targetId).name}`)}
+  else if(roleKey==='imp'){handleImpKill(player,targetId);return}
+  else if(roleKey==='ravenkeeper'){const t=getPlayer(targetId);logEvent('night',`养鸦人查看 ${t.name}：${t.roleData.name}`);conn.send({type:'info',info:`${t.name} 的角色是 ${t.roleData.name}`})}
+  else if(roleKey==='butler'){player.master=targetId;logEvent('night',`管家选择了 ${getPlayer(targetId).name}`)}
+  game.nightStep++;processStNightAction();
+}
+
+function handlePlayerResponseMulti(conn,data){
+  const player=game.players.find(p=>p.peerId===conn.peer);
+  if(!player)return;
+  const action=game.nightActions[game.nightStep];
+  if(!action)return;
+  const{roleKey}=action;
+  const ids=data.targetIds;
+  if(roleKey==='fortune_teller'){const r=calcFortuneTellerInfo(ids[0],ids[1]);logEvent('night',`算命师检测：${r?'有恶魔':'无恶魔'}`);conn.send({type:'info',info:r?'其中有一名恶魔':'都不是恶魔'})}
+  else if(roleKey==='seamstress'){const r=calcSeamstressInfo(ids[0],ids[1]);logEvent('night',`裁缝检测：${r?'同阵营':'不同阵营'}`);conn.send({type:'info',info:r?'同一阵营':'不同阵营'})}
+  game.nightStep++;processStNightAction();
+}
+
+function handleImpKill(imp,targetId){
+  const target=getPlayer(targetId);
+  if(targetId===imp.id){
+    imp.alive=false;logEvent('night',`小恶魔（${imp.name}）自杀了`);
+    const candidates=alivePlayers();
+    $('app').innerHTML=`
+      ${renderHeader()}
+      <div class="card">
+        <div class="card-title"><span class="icon">😈</span> 选择新的小恶魔</div>
+        <p class="text-center text-muted mb-14">小恶魔已自杀，选择新恶魔：</p>
+        <div class="target-select">${candidates.map(p=>`<div class="target-btn" data-id="${p.id}">座位${p.seat} ${p.name}</div>`).join('')}</div>
+        <div class="text-center mt-14"><button class="btn btn-danger" id="new-imp" disabled>确认</button></div>
+      </div>`;
+    let sel=null;
+    document.querySelectorAll('#app .target-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#app .target-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');sel=b.dataset.id;$('new-imp').disabled=false}));
+    $('new-imp').addEventListener('click',()=>{const np=getPlayer(parseInt(sel));np.role='imp';np.roleData=ROLES.imp;if(np.peerId&&conns[np.id])conns[np.id].send({type:'role',roleKey:'imp',roleData:ROLES.imp});logEvent('night',`${np.name} 成为新的小恶魔`);toast(`${np.name} 成为新恶魔`);game.nightStep++;processStNightAction()});
+    return;
+  }
+  if(isProtected(targetId)){logEvent('night',`小恶魔攻击 ${target.name}，但被保护了`);toast(`${target.name} 被保护`);game.nightStep++;processStNightAction();return}
+  if(target.role==='soldier'&&!isPoisoned(targetId)){logEvent('night',`小恶魔攻击 ${target.name}（士兵），免疫`);toast(`士兵免疫攻击`);game.nightStep++;processStNightAction();return}
+  target.alive=false;logEvent('death',`小恶魔杀死了 ${target.name}`);toast(`${target.name} 被杀死`);
+  // 通知被杀的玩家
+  if(target.peerId&&conns[target.id])conns[target.id].send({type:'info',info:'你被恶魔杀死了！'});
+  game.nightStep++;processStNightAction();
+}
+
+function finishStNight(){
+  const deaths=game.players.filter(p=>!p.alive&&p.killedThisNight);
+  game.players.forEach(p=>p.killedThisNight=false);
+  const win=checkWin();
+  if(win){showGameOver(win);return}
+  game.phase='day';
+  broadcastAll({type:'day_announce',day:game.day,deaths:deaths.map(p=>p.name),aliveCount:alivePlayers().length});
+  showStDayPhase(deaths);
+}
+
+function showStDayPhase(nightDeaths){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">☀️</span> 第${game.day}天 · 白天</div>
+      <div class="day-announce">
+        <h2>☀️ 天亮了</h2>
+        ${nightDeaths.length>0?`<p>昨夜死亡：</p>${nightDeaths.map(p=>`<div class="death-item">💀 座位${p.seat} ${p.name}</div>`).join('')}`:`<div class="no-death">昨夜平安无事</div>`}
+      </div>
+      <p class="text-center text-muted">存活：${alivePlayers().length}/${game.players.length}</p>
+      <div class="divider"></div>
+      <div class="player-grid">${game.players.map(p=>`<div class="player-card ${p.alive?'':'dead'}"><div class="pc-seat">座位 ${p.seat}</div><div class="pc-name">${p.name}</div><div class="pc-status">${p.alive?'存活':'💀 已死亡'}</div></div>`).join('')}</div>
+      <div class="divider"></div>
+      <h3 class="text-gold mb-10">📋 提名与处决</h3>
+      <div class="flex-center gap-8 mb-10">
+        <select class="input-field" style="flex:1;margin:0;width:auto" id="nom-p"><option value="">提名者...</option>${alivePlayers().map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+        <span class="text-muted">→</span>
+        <select class="input-field" style="flex:1;margin:0;width:auto" id="nom-t"><option value="">被提名者...</option>${alivePlayers().map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+        <button class="btn btn-primary btn-sm" id="add-nom">添加</button>
+      </div>
+      <div id="nom-list"></div>
+      <div class="divider"></div>
+      <div class="flex-center">
+        <button class="btn btn-secondary" id="end-day">结束今天 →</button>
+      </div>
+    </div>
+  `;
+  let noms=[];
+  $('add-nom').addEventListener('click',()=>{
+    const pid=parseInt($('nom-p').value),tid=parseInt($('nom-t').value);
+    if(!pid||!tid){toast('请选择提名者和被提名者');return}
+    if(pid===tid){toast('不能提名自己');return}
+    const p=getPlayer(pid),t=getPlayer(tid);
+    if(p.nominatedToday){toast(`${p.name} 今天已提名过`);return}
+    if(t.wasNominatedToday){toast(`${t.name} 今天已被提名过`);return}
+    p.nominatedToday=true;t.wasNominatedToday=true;
+    noms.push({proposer:pid,target:tid,votes:{},result:null});
+    logEvent('day',`${p.name} 提名了 ${t.name}`);
+    renderNoms();
+  });
+  function renderNoms(){
+    const c=$('nom-list');
+    c.innerHTML=noms.map((n,i)=>{
+      const p=getPlayer(n.proposer),t=getPlayer(n.target);
+      return`<div class="player-row"><span style="flex:1;font-size:14px"><b class="text-gold">${p.name}</b> → <b class="text-red">${t.name}</b></span>${n.result===null?`<button class="btn btn-sm btn-secondary" data-vote="${i}">投票</button>`:`<span class="conn-status ${n.result==='passed'?'online':'offline'}">${n.result==='passed'?'通过':'未通过'}</span>`}</div>`;
+    }).join('');
+    c.querySelectorAll('[data-vote]').forEach(b=>b.addEventListener('click',()=>startStVote(parseInt(b.dataset.vote))));
+  }
+  $('end-day').addEventListener('click',()=>{logEvent('day',`第${game.day}天结束`);startStorytellerNight()});
+}
+
+function startStVote(idx){
+  const nom=noms[idx]||game.nominations[idx];
+  if(!nom)return;
+  const target=getPlayer(nom.target);
+  const alive=alivePlayers().filter(p=>p.id!==nom.target);
+  const dead=game.players.filter(p=>!p.alive&&!p.usedGhostVote);
+
+  // 发送投票请求给所有在线玩家
+  alive.forEach(p=>{if(p.peerId&&conns[p.id])conns[p.id].send({type:'vote_prompt',proposer:getPlayer(nom.proposer).name,target:target.name})});
+
+  let votes={};
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🗳️</span> 投票：${getPlayer(nom.proposer).name} → ${target.name}</div>
+      <div id="vote-rows">${alive.map(p=>`<div class="vote-row"><span class="vn">${p.name}</span>${p.peerId&&conns[p.id]?'<span class="text-muted" style="font-size:12px">手机投票中</span>':''}<button class="vote-btn yes" data-id="${p.id}" data-v="yes">✓</button><button class="vote-btn no" data-id="${p.id}" data-v="no">✗</button></div>`).join('')}${dead.map(p=>`<div class="vote-row"><span class="vn" style="color:var(--text2)">${p.name} 💀</span><button class="vote-btn" data-id="${p.id}" data-v="ghost" style="background:rgba(156,95,255,.15);color:var(--purple)">👻 幽灵票</button></div>`).join('')}</div>
+      <div class="text-center mt-14"><button class="btn btn-gold" id="finalize-vote">确认结果</button></div>
+      <div id="vote-result"></div>
+    </div>
+  `;
+  document.querySelectorAll('.vote-btn').forEach(b=>b.addEventListener('click',()=>{
+    const pid=b.dataset.id,v=b.dataset.v;
+    document.querySelectorAll(`.vote-btn[data-id="${pid}"]`).forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    votes[pid]=v;
+  }));
+  $('finalize-vote').addEventListener('click',()=>{
+    const yes=Object.values(votes).filter(v=>v==='yes'||v==='ghost').length;
+    const no=Object.values(votes).filter(v=>v==='no').length;
+    const needed=Math.floor(alive.length/2)+1;
+    const passed=yes>=needed;
+    nom.result=passed?'passed':'failed';
+    if(passed){
+      // 处女检查
+      if(target.role==='virgin'){
+        const prop=getPlayer(nom.proposer);
+        if(prop&&prop.roleData.type==='townsfolk'){prop.alive=false;logEvent('day',`${prop.name} 因提名处女被处决`);game.executedToday=prop.id}
+        else{target.alive=false;game.executedToday=target.id;logEvent('day',`${target.name} 被处决`)}
+      }else{
+        target.alive=false;game.executedToday=target.id;logEvent('day',`${target.name} 被处决`);
+        if(target.role==='saint'){logEvent('day',`圣人被处决！邪恶获胜`);broadcastAll({type:'game_over',winner:'evil',players:game.players.map(p=>({name:p.name,role:p.roleData.name,icon:p.roleData.icon,team:p.roleData.team}))});setTimeout(()=>showGameOver('evil'),1000);return}
+      }
+      const win=checkWin();
+      if(win){broadcastAll({type:'game_over',winner:win,players:game.players.map(p=>({name:p.name,role:p.roleData.name,icon:p.roleData.icon,team:p.roleData.team}))});setTimeout(()=>showGameOver(win),1000);return}
+    }
+    $('vote-result').innerHTML=`<div class="day-announce ${passed?'':'text-red'}">${passed?`✅ 通过！${target.name} 被处决`:`❌ 未通过（${yes}同意/${no}反对，需${needed}票）`}</div>`;
+    setTimeout(()=>showStDayPhase([]),2000);
+  });
+}
+
+function handlePlayerVote(conn,data){
+  // 玩家手机投票 - 更新对应行
+  const player=game.players.find(p=>p.peerId===conn.peer);
+  if(!player)return;
+  const v=data.vote;
+  votes=votes||{};
+  votes[player.id]=v;
+  const row=document.querySelector(`.vote-btn[data-id="${player.id}"]`)?.parentElement;
+  if(row){
+    row.querySelector('.text-muted')?.remove();
+    document.querySelectorAll(`.vote-btn[data-id="${player.id}"]`).forEach(b=>b.classList.remove('active'));
+    const btn=row.querySelector(`.vote-btn[data-v="${v==='yes'?'yes':'no'}"]`);
+    if(btn)btn.classList.add('active');
+  }
+}
+
+function broadcastAll(msg){
+  game.players.forEach(p=>{if(p.peerId&&conns[p.id])conns[p.id].send(msg)});
+}
+
+function showGameOver(winner){
+  game.phase='over';game.winner=winner;
+  broadcastAll({type:'game_over',winner,players:game.players.map(p=>({name:p.name,role:p.roleData.name,icon:p.roleData.icon,team:p.roleData.team,seat:p.seat,alive:p.alive}))});
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card game-over ${winner}">
+      <h2>${winner==='good'?'🎉 好人阵营获胜！':'😈 邪恶阵营获胜！'}</h2>
+      <p class="text-muted">${winner==='good'?'恶魔被消灭，正义战胜了邪恶！':'好人团灭，黑暗笼罩了钟楼...'}</p>
+      <div class="reveal-all">${game.players.map(p=>`<div class="reveal-card"><div class="pc-seat">座位 ${p.seat}${p.alive?'':' 💀'}</div><div class="pc-name">${p.name}</div><div class="role-chip ${p.roleData.type}">${p.roleData.icon} ${p.roleData.name}</div></div>`).join('')}</div>
+      <div class="divider"></div><h3 class="text-gold mb-10">📜 游戏日志</h3>
+      <div class="log-list">${game.log.map(l=>`<div class="log-item ${l.type}"><span class="log-time">${l.time}</span>${l.msg}</div>`).join('')}</div>
+      <div class="flex-center mt-20"><button class="btn btn-gold btn-lg" id="play-again">🔄 再来一局</button></div>
+    </div>`;
+  $('play-again').addEventListener('click',()=>{if(peer)peer.destroy();Object.keys(game).forEach(k=>{if(k==='mode')return;if(typeof game[k]==='string')game[k]='';if(Array.isArray(game[k]))game[k]=[];if(typeof game[k]==='number')game[k]=0});game.phase='home';game.outsiderModifier=0;conns={};renderHome()});
+}
+
+// ============================================================
+//  玩家模式
+// ============================================================
+function initPlayer(){
+  game.mode='player';game.phase='join';
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">👤</span> 加入游戏</div>
+      <input class="input-field" type="text" id="room-code" placeholder="房间号（4位数字）" maxlength="4" inputmode="numeric">
+      <input class="input-field" type="text" id="player-name" placeholder="你的姓名">
+      <div class="conn-indicator mb-10" id="conn-status" style="display:none">
+        <span class="conn-dot offline" id="pconn-dot"></span><span id="pconn-text">连接中...</span>
+      </div>
+      <div class="flex-center gap-8">
+        <button class="btn btn-ghost" id="p-back">← 返回</button>
+        <button class="btn btn-gold btn-lg" id="p-join">加入游戏 →</button>
+      </div>
+    </div>
+  `;
+  $('p-back').addEventListener('click',renderHome);
+  $('p-join').addEventListener('click',joinRoom);
+}
+
+function joinRoom(){
+  const code=$('room-code').value.trim();
+  const name=$('player-name').value.trim();
+  if(!code||code.length!==4){toast('请输入4位房间号');return}
+  if(!name){toast('请输入姓名');return}
+  if(!window._peerReady||typeof Peer==='undefined'){toast('网络库未加载，请刷新页面或使用本地模式');return}
+  $('conn-status').style.display='flex';
+  $('pconn-text').textContent='正在连接...';
+  try{
+    peer=new Peer({
+      secure:true,
+      config:{iceServers:[
+        {urls:'stun:stun.l.google.com:19302'},
+        {urls:'stun:stun1.l.google.com:19302'},
+        {urls:'stun:stun2.l.google.com:19302'},
+        {urls:'stun:stunserver.org:3478'},
+        {urls:'stun:stun.qq.com:3478'},
+        {urls:'stun:stun.miwifi.com:3478'},
+        {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+        {urls:'turn:openrelay.metered.ca:8443',username:'openrelayproject',credential:'openrelayproject'}
+      ]}
+    });
+    peer.on('open',()=>{
+      const conn=peer.connect(`botc-${code}`,{reliable:true,
+        config:{iceServers:[
+          {urls:'stun:stun.l.google.com:19302'},
+          {urls:'stun:stun1.l.google.com:19302'},
+          {urls:'stun:stun.qq.com:3478'},
+          {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+          {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+        ]}
+      });
+      conn.on('open',()=>{
+        $('pconn-dot').classList.remove('offline');
+        $('pconn-text').textContent='已连接！';
+        conn.send({type:'join',name});
+        setupPlayerMessageHandler(conn);
+      });
+      conn.on('error',()=>{
+        $('pconn-text').textContent='连接中断，正在重连...';
+        toast('连接中断，正在重连...');
+        setTimeout(()=>{if(peer){peer.destroy();peer=null}joinRoom()},2000);
+      });
+      conn.on('close',()=>{
+        $('pconn-text').textContent='连接断开，正在重连...';
+        setTimeout(()=>{if(peer){peer.destroy();peer=null}joinRoom()},2000);
+      });
+    });
+    peer.on('error',(err)=>{
+      const errType=err.type||'unknown';
+      if(errType==='peer-unavailable'){
+        $('pconn-text').textContent='房间不存在，请检查房间号';
+        toast('房间号错误或说书人未创建房间');
+      }else if(errType==='network'||errType==='server-error'||errType==='socket-error'){
+        $('pconn-text').textContent='网络异常，正在重连...';
+        toast('网络异常，重连中...');
+        setTimeout(()=>{if(peer){peer.destroy();peer=null}joinRoom()},3000);
+      }else{
+        $('pconn-text').textContent='错误：'+errType;
+        toast('错误：'+errType);
+      }
+    });
+    peer.on('disconnected',()=>{
+      $('pconn-text').textContent='断线，重连中...';
+      try{peer.reconnect()}catch(e){setTimeout(()=>{if(peer){peer.destroy();peer=null}joinRoom()},3000)}
+    });
+  }catch(e){toast('初始化失败')}
+}
+
+let playerConn=null;
+function setupPlayerMessageHandler(conn){
+  playerConn=conn;
+  conn.on('data',(data)=>{
+    if(data.type==='join_ack'){game.mySeat=data.seat;game.myPlayerId=data.playerId}
+    else if(data.type==='role'){
+      game.myRole=data.roleKey;game.myRoleData=data.roleData;
+      showPlayerRole();
+    }
+    else if(data.type==='night_action')showPlayerNightAction(data);
+    else if(data.type==='info')showPlayerInfo(data.info);
+    else if(data.type==='night_start')showPlayerWaiting(`🌙 第${data.day}夜降临，等待你的行动...`);
+    else if(data.type==='day_announce')showPlayerDayAnnounce(data);
+    else if(data.type==='vote_prompt')showPlayerVote(data);
+    else if(data.type==='game_over')showPlayerGameOver(data);
+    else if(data.type==='error')toast(data.msg);
+  });
+}
+
+function showPlayerRole(){
+  const r=game.myRoleData;
+  const tc=r.team==='good'?'var(--green)':'var(--red)';
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="role-reveal" style="border-color:${tc}">
+        <div class="role-icon">${r.icon}</div>
+        <div class="role-name" style="color:${tc}">${r.name}</div>
+        <div class="role-en">${r.en}</div>
+        <div class="role-team" style="background:${tc}22;color:${tc}">${teamName(r.team)} · ${typeName(r.type)}</div>
+        <div class="role-desc">${r.desc}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="waiting-screen"><div class="ws-icon">⏳</div><div class="ws-title">等待游戏开始</div><div class="ws-msg">说书人将引导游戏进行<br>当轮到你行动时，这里会显示提示</div></div>
+    </div>
+  `;
+}
+
+function showPlayerNightAction(data){
+  const{roleKey,roleName,roleIcon,prompt,targets,isInfo}=data;
+  if(isInfo){
+    // 信息类角色 - 等待说书人发送信息
+    $('app').innerHTML=`
+      ${renderHeader()}
+      <div class="card">
+        <div class="role-reveal" style="border-color:var(--gold)">
+          <div class="role-icon">${roleIcon}</div>
+          <div class="role-name" style="color:var(--gold)">${roleName}</div>
+          <div class="role-desc">${prompt}</div>
+        </div>
+        <div class="waiting-screen"><div class="ws-icon">📜</div><div class="ws-title">说书人正在准备信息...</div><div class="ws-msg">请等待说书人传达信息</div></div>
+      </div>
+    `;
+    return;
+  }
+  // 行动类角色 - 显示目标选择
+  const multi=roleKey==='fortune_teller'||roleKey==='seamstress';
+  let selected=[];
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="role-reveal" style="border-color:var(--gold)">
+        <div class="role-icon">${roleIcon}</div>
+        <div class="role-name" style="color:var(--gold)">${roleName}</div>
+        <div class="role-desc">${prompt}</div>
+      </div>
+      <div class="target-select" id="p-targets">${targets.map(t=>`<div class="target-btn" data-id="${t.id}">座位${t.seat} ${t.name}</div>`).join('')}</div>
+      <div class="flex-center mt-14 gap-8">
+        <button class="btn btn-primary" id="p-confirm" disabled>✓ 确认选择</button>
+        <button class="btn btn-ghost" id="p-skip">⏭️ 跳过</button>
+      </div>
+    </div>
+  `;
+  document.querySelectorAll('#p-targets .target-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(multi){
+        const id=btn.dataset.id;
+        if(selected.includes(id)){selected=selected.filter(s=>s!==id);btn.classList.remove('selected')}
+        else{if(selected.length>=2)return;selected.push(id);btn.classList.add('selected')}
+      }else{
+        document.querySelectorAll('#p-targets .target-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');selected=[btn.dataset.id];
+      }
+      $('p-confirm').disabled=selected.length===(multi?2:1)?false:true;
+    });
+  });
+  $('p-confirm').addEventListener('click',()=>{
+    if(multi){playerConn.send({type:'night_response_multi',targetIds:selected.map(s=>parseInt(s))})}
+    else{playerConn.send({type:'night_response',targetId:parseInt(selected[0])})}
+    showPlayerWaiting('✓ 已提交选择，等待说书人...');
+  });
+  $('p-skip').addEventListener('click',()=>{playerConn.send({type:'night_skip'});showPlayerWaiting('已跳过，等待下一步...')});
+}
+
+function showPlayerInfo(info){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="role-reveal" style="border-color:var(--gold)">
+        <div class="role-icon">📜</div>
+        <div class="role-name" style="color:var(--gold)">说书人的信息</div>
+        <div class="role-desc" style="font-size:18px;color:var(--text)">${info}</div>
+      </div>
+      <div class="waiting-screen"><div class="ws-icon">⏳</div><div class="ws-title">请记住这条信息</div><div class="ws-msg">等待下一步指示...</div></div>
+    </div>
+  `;
+}
+
+function showPlayerWaiting(msg){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card"><div class="waiting-screen"><div class="ws-icon">⏳</div><div class="ws-title">${msg}</div></div></div>
+  `;
+}
+
+function showPlayerDayAnnounce(data){
+  let html=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="day-announce"><h2>☀️ 第${data.day}天</h2>`;
+  if(data.deaths.length>0){html+=`<p>昨夜死亡：</p>${data.deaths.map(n=>`<div class="death-item">💀 ${n}</div>`).join('')}`}
+  else{html+=`<div class="no-death">昨夜平安无事</div>`}
+  html+=`<p class="text-muted mt-10">存活玩家：${data.aliveCount}人</p></div>
+      <div class="waiting-screen"><div class="ws-icon">💬</div><div class="ws-title">白天讨论中</div><div class="ws-msg">等待投票时你会收到通知</div></div>
+    </div>`;
+  $('app').innerHTML=html;
+}
+
+function showPlayerVote(data){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🗳️</span> 投票</div>
+      <div class="day-announce"><h2>${data.proposer} → ${data.target}</h2><p>是否同意处决 ${data.target}？</p></div>
+      <div class="flex-center gap-8 mt-14">
+        <button class="btn btn-lg" style="background:var(--green);color:#fff" id="vote-yes">✓ 同意处决</button>
+        <button class="btn btn-lg" style="background:var(--red);color:#fff" id="vote-no">✗ 反对</button>
+      </div>
+    </div>
+  `;
+  $('vote-yes').addEventListener('click',()=>{playerConn.send({type:'vote',vote:'yes'});showPlayerWaiting('✓ 已投票：同意')});
+  $('vote-no').addEventListener('click',()=>{playerConn.send({type:'vote',vote:'no'});showPlayerWaiting('✓ 已投票：反对')});
+}
+
+function showPlayerGameOver(data){
+  const w=data.winner;
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card game-over ${w}">
+      <h2>${w==='good'?'🎉 好人获胜！':'😈 邪恶获胜！'}</h2>
+      <div class="reveal-all">${data.players.map(p=>`<div class="reveal-card"><div class="pc-seat">座位 ${p.seat}${p.alive?'':' 💀'}</div><div class="pc-name">${p.name}</div><div class="role-chip ${p.team==='good'?'townsfolk':'demon'}">${p.icon} ${p.role}</div></div>`).join('')}</div>
+      <div class="flex-center mt-20"><button class="btn btn-gold btn-lg" id="p-again">🔄 再来一局</button></div>
+    </div>
+  `;
+  $('p-again').addEventListener('click',()=>{if(peer)peer.destroy();game.phase='home';renderHome()});
+}
+
+// ============================================================
+//  本地模式（改进版）
+// ============================================================
+function initLocal(){
+  game.mode='local';game.phase='setup';game.players=[];
+  for(let i=0;i<8;i++)game.players.push({id:i,seat:i+1,name:'',role:'',roleData:null,alive:true,usedGhostVote:false,peerId:null});
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">📱</span> 本地模式</div>
+      <div class="flex-center mb-10">
+        <button class="btn btn-secondary btn-sm" id="l-remove">➖</button>
+        <span class="text-muted">当前：<span class="text-gold" style="font-size:18px;font-weight:700" id="l-pcount">${game.players.length}</span> 人</span>
+        <button class="btn btn-secondary btn-sm" id="l-add">➕</button>
+      </div>
+      <div id="l-player-list"></div>
+      <div class="section"><div class="section-label">外来者调整</div><div class="flex-center gap-8"><button class="btn btn-secondary btn-sm" id="l-out-minus">➖</button><span class="text-gold" style="font-size:20px;font-weight:700" id="l-out-val">0</span><button class="btn btn-secondary btn-sm" id="l-out-plus">➕</button></div></div>
+      <div class="flex-center mt-14"><button class="btn btn-ghost" id="l-back">← 返回</button><button class="btn btn-gold btn-lg" id="l-start">🎲 分配角色 →</button></div>
+    </div>
+  `;
+  renderLocalPlayerList();
+  $('l-remove').addEventListener('click',()=>{if(game.players.length>5){game.players.pop();renderLocalPlayerList();$('l-pcount').textContent=game.players.length}});
+  $('l-add').addEventListener('click',()=>{if(game.players.length<15){const id=Math.max(...game.players.map(p=>p.id),-1)+1;game.players.push({id,seat:game.players.length+1,name:'',role:'',roleData:null,alive:true,usedGhostVote:false,peerId:null});renderLocalPlayerList();$('l-pcount').textContent=game.players.length}else toast('最多15人')});
+  $('l-out-minus').addEventListener('click',()=>{if(game.outsiderModifier>-2){game.outsiderModifier--;$('l-out-val').textContent=(game.outsiderModifier>=0?'+':'')+game.outsiderModifier}});
+  $('l-out-plus').addEventListener('click',()=>{if(game.outsiderModifier<3){game.outsiderModifier++;$('l-out-val').textContent=(game.outsiderModifier>=0?'+':'')+game.outsiderModifier}});
+  $('l-back').addEventListener('click',renderHome);
+  $('l-start').addEventListener('click',()=>{
+    if(game.players.filter(p=>!p.name.trim()).length>0){toast('请填写所有玩家姓名');return}
+    if(!assignRoles())return;
+    showLocalAssign();
+  });
+}
+
+function renderLocalPlayerList(){
+  const c=$('l-player-list');if(!c)return;
+  c.innerHTML=game.players.map((p,i)=>`<div class="player-row"><div class="seat-num">${p.seat}</div><input class="input-field" style="flex:1;margin:0;padding:6px 10px;font-size:14px" placeholder="玩家${p.seat}姓名" value="${p.name}" data-idx="${i}"></div>`).join('');
+  c.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{game.players[parseInt(e.target.dataset.idx)].name=e.target.value}));
+}
+
+function showLocalAssign(){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card">
+      <div class="card-title"><span class="icon">🎭</span> 角色分配</div>
+      <div class="day-announce"><h3>📥 依次传递设备给每位玩家</h3><p>每人点击"查看角色"，看完后传给下一位</p></div>
+      ${game.players.map(p=>`<div class="player-row"><div class="seat-num">${p.seat}</div><div class="player-name">${p.name}</div><button class="btn btn-ghost btn-sm" data-reveal="${p.id}">查看角色</button></div>`).join('')}
+      <div class="divider"></div>
+      <div class="flex-center"><button class="btn btn-gold btn-lg" id="l-night">🌙 开始夜晚 →</button></div>
+    </div>
+  `;
+  document.querySelectorAll('[data-reveal]').forEach(b=>b.addEventListener('click',()=>{
+    const p=getPlayer(parseInt(b.dataset.reveal));
+    $('app').innerHTML=`
+      ${renderHeader()}
+      <div class="card"><div class="day-announce"><h3>🔒 只有 ${p.name} 能看</h3><p>座位 ${p.seat}</p></div>
+      <div class="text-center"><button class="btn btn-gold btn-lg" id="show-r">🎭 查看我的角色</button></div>
+      <div id="r-display"></div>
+      <div class="text-center mt-14 hidden" id="r-back"><button class="btn btn-secondary" id="r-back-btn">← 返回列表</button></div></div>
+    `;
+    $('show-r').addEventListener('click',()=>{
+      const r=p.roleData;const tc=r.team==='good'?'var(--green)':'var(--red)';
+      $('r-display').innerHTML=`<div class="role-reveal" style="border-color:${tc}"><div class="role-icon">${r.icon}</div><div class="role-name" style="color:${tc}">${r.name}</div><div class="role-en">${r.en}</div><div class="role-team" style="background:${tc}22;color:${tc}">${teamName(r.team)} · ${typeName(r.type)}</div><div class="role-desc">${r.desc}</div></div>`;
+      $('show-r').classList.add('hidden');$('r-back').classList.remove('hidden');
+    });
+    $('r-back-btn').addEventListener('click',showLocalAssign);
+  }));
+  $('l-night').addEventListener('click',()=>{
+    game.phase='night';game.day++;game.nightStep=0;game.nightActions=getNightActions(game.day===1);game.nominations=[];game.executedToday=null;game.poisonedPlayer=null;game.protectedPlayer=null;game.players.forEach(p=>{p.nominatedToday=false;p.wasNominatedToday=false});logEvent('night',`第${game.day}夜降临。`);
+    showLocalNightOverview();
+  });
+}
+
+function showLocalNightOverview(){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card"><div class="card-title"><span class="icon">🌙</span> 第${game.day}夜 · 行动顺序</div>
+    <div class="day-announce"><h2>🌙 夜晚降临</h2><p class="text-muted">所有人闭眼，依次行动</p></div>
+    ${game.nightActions.map((a,i)=>`<div class="player-row"><div class="seat-num">${i+1}</div><div style="font-size:22px">${a.role.icon}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${a.role.name}</div><div style="font-size:12px;color:var(--text2)">座位${a.player.seat} · ${a.player.name}</div></div><span class="conn-status ${a.player.roleData.team==='good'?'online':'offline'}" style="${a.player.roleData.team==='evil'?'background:rgba(233,69,96,.15);color:var(--red)':''}">${a.player.roleData.team==='good'?'好人':'邪恶'}</span></div>`).join('')}
+    <div class="divider"></div><div class="flex-center gap-8"><button class="btn btn-ghost" id="ln-skip">⏭️ 跳到天亮</button><button class="btn btn-gold btn-lg" id="ln-start">🌙 开始行动 →</button></div></div>
+  `;
+  $('ln-skip').addEventListener('click',()=>{for(const a of game.nightActions){if(!a.player.alive)continue;if(a.roleKey==='imp'&&!isPoisoned(a.player.id)){const ts=alivePlayers().filter(p=>p.id!==a.player.id&&p.role!=='soldier'&&!isProtected(p.id));if(ts.length>0){const t=shuffle(ts)[0];t.alive=false;logEvent('death',`小恶魔杀死了 ${t.name}`)}}if(a.roleKey==='poisoner'&&!isPoisoned(a.player.id)){const ts=alivePlayers().filter(p=>p.id!==a.player.id);if(ts.length>0)game.poisonedPlayer=shuffle(ts)[0].id}}finishLocalNight()});
+  $('ln-start').addEventListener('click',()=>{game.nightStep=0;processLocalNight()});
+}
+
+let localTimer=null;
+function processLocalNight(){
+  if(game.nightStep>=game.nightActions.length){finishLocalNight();return}
+  const action=game.nightActions[game.nightStep];
+  const{roleKey,role,player}=action;
+  if(!player.alive||isPoisoned(player.id)){game.nightStep++;processLocalNight();return}
+  // 传递设备画面
+  $('app').innerHTML=`${renderHeader()}<div class="card"><div class="day-announce"><h3>📥 传给 ${player.name}</h3><p>座位 ${player.seat} · 只有TA能看</p></div><div class="text-center"><button class="btn btn-gold btn-lg" id="pass-next">我准备好了 →</button></div></div>`;
+  $('pass-next').addEventListener('click',()=>renderLocalNightStep(action));
+}
+
+function renderLocalNightStep(action){
+  const{roleKey,role,player}=action;
+  const others=alivePlayers().filter(p=>p.id!==player.id);
+  const all=alivePlayers();
+  let body='';
+  if(roleKey==='empath'){const c=calcEmpathInfo(player.id);const n=getNeighbors(player.id);body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">存活邻居中有 <span class="text-gold" style="font-size:24px">${c}</span> 名邪恶<br><span style="font-size:12px">${n.map(x=>x.name).join('、')}</span></div></div>`}
+  else if(roleKey==='chef'){body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">邪恶玩家相邻 <span class="text-gold" style="font-size:24px">${calcChefInfo()}</span> 对</div></div>`}
+  else if(roleKey==='clockmaker'){body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">恶魔还需杀 <span class="text-gold" style="font-size:24px">${calcClockmakerInfo()}</span> 人</div></div>`}
+  else if(roleKey==='undertaker'){let info='今天没人被处决';if(game.executedToday){const ex=getPlayer(game.executedToday);info=`${ex.name} 被处决，角色是 ${ex.roleData.name}`}body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">${info}</div></div>`}
+  else if(roleKey==='washerwoman'||roleKey==='librarian'||roleKey==='investigator'){const tt={washerwoman:'townsfolk',librarian:'outsider',investigator:'minion'}[roleKey];const tn={washerwoman:'镇民',librarian:'外来者',investigator:'爪牙'}[roleKey];const cands=game.players.filter(p=>p.roleData.type===tt&&p.alive);let info='说书人请给信息';if(cands.length>0){const real=shuffle(cands)[0];const other=shuffle(game.players.filter(p=>p.id!==real.id&&p.alive))[0];info=`${shuffle([real,other]).map(p=>p.name).join(' 和 ')} 中有1名是${tn}`}body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">${info}</div></div>`}
+  else if(roleKey==='spy'){const evil=game.players.filter(p=>p.roleData.team==='evil');body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="no-death">邪恶：${evil.map(p=>p.name+'('+p.roleData.name+')').join('、')}</div></div>`}
+  else if(roleKey==='scarlet_woman'){const dd=game.players.find(p=>p.role==='imp'&&!p.alive);const ac=alivePlayers().length;body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><div class="${dd&&ac>=5?'death-item':'no-death'}">${dd&&ac>=5?'成为新恶魔！':'条件不满足'}</div></div>`}
+  else{const ts=roleKey==='imp'?all:others;const multi=roleKey==='fortune_teller'||roleKey==='seamstress';body=`<div class="day-announce"><h2>${role.icon} ${role.name}</h2><p>座位${player.seat} ${player.name}</p><p class="text-muted">${getNightPrompt(roleKey)}</p></div><div class="target-select" id="lt-targets">${ts.map(p=>`<div class="target-btn" data-id="${p.id}">座位${p.seat} ${p.name}</div>`).join('')}</div>`}
+
+  const needChoice=['poisoner','monk','imp','fortune_teller','seamstress','ravenkeeper','butler'].includes(roleKey);
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card"><div class="card-title"><span class="icon">🌙</span> 第${game.day}夜 · ${role.name}</div>
+    <div class="night-progress">${game.nightActions.map((a,i)=>`<div class="progress-dot ${i<game.nightStep?'done':i===game.nightStep?'current':''}"></div>`).join('')}</div>
+    <div class="text-center text-muted mb-10" style="font-size:12px">第 ${game.nightStep+1} / ${game.nightActions.length} 步</div>
+    ${body}
+    <div class="flex-center mt-14 gap-8">
+      <button class="btn btn-gold" id="lt-confirm" ${needChoice?'disabled':''}>✓ 确认</button>
+      <button class="btn btn-ghost" id="lt-skip">⏭️ 跳过</button>
+    </div></div>
+  `;
+
+  if(localTimer){clearInterval(localTimer);localTimer=null}
+  if(!needChoice){
+    let cd=5;const timerEl=document.createElement('div');timerEl.className='text-center text-muted mt-10';timerEl.textContent=`${cd}秒后自动继续...`;document.querySelector('.card').appendChild(timerEl);
+    localTimer=setInterval(()=>{cd--;if(cd<=0){clearInterval(localTimer);localTimer=null;game.nightStep++;processLocalNight()}else timerEl.textContent=`${cd}秒后自动继续...`},1000);
+  }
+
+  let selected=[];
+  const multi=roleKey==='fortune_teller'||roleKey==='seamstress';
+  document.querySelectorAll('#lt-targets .target-btn')?.forEach(btn=>btn.addEventListener('click',()=>{
+    if(multi){const id=btn.dataset.id;if(selected.includes(id)){selected=selected.filter(s=>s!==id);btn.classList.remove('selected')}else{if(selected.length>=2)return;selected.push(id);btn.classList.add('selected')}}else{document.querySelectorAll('#lt-targets .target-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');selected=[btn.dataset.id]}
+    $('lt-confirm').disabled=false;
+  }));
+  $('lt-confirm').addEventListener('click',()=>{
+    if(localTimer){clearInterval(localTimer);localTimer=null}
+    const ids=selected.map(s=>parseInt(s));
+    if(roleKey==='poisoner'){game.poisonedPlayer=ids[0];logEvent('night',`毒药师毒害了 ${getPlayer(ids[0]).name}`)}
+    else if(roleKey==='monk'){game.protectedPlayer=ids[0];logEvent('night',`僧侣保护了 ${getPlayer(ids[0]).name}`)}
+    else if(roleKey==='imp'){handleImpKill(player,ids[0]);return}
+    else if(roleKey==='fortune_teller'){const r=calcFortuneTellerInfo(ids[0],ids[1]);toast(`结果：${r?'有恶魔':'无恶魔'}`)}
+    else if(roleKey==='seamstress'){const r=calcSeamstressInfo(ids[0],ids[1]);toast(`结果：${r?'同阵营':'不同阵营'}`)}
+    else if(roleKey==='ravenkeeper'){const t=getPlayer(ids[0]);toast(`${t.name} 是 ${t.roleData.name}`)}
+    else if(roleKey==='butler'){player.master=ids[0];logEvent('night',`管家选择 ${getPlayer(ids[0]).name}`)}
+    game.nightStep++;processLocalNight();
+  });
+  $('lt-skip').addEventListener('click',()=>{if(localTimer){clearInterval(localTimer);localTimer=null}game.nightStep++;processLocalNight()});
+}
+
+function finishLocalNight(){
+  if(localTimer){clearInterval(localTimer);localTimer=null}
+  const deaths=game.players.filter(p=>!p.alive);
+  const win=checkWin();if(win){showGameOver(win);return}
+  game.phase='day';
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card"><div class="card-title"><span class="icon">☀️</span> 第${game.day}天 · 白天</div>
+    <div class="day-announce"><h2>☀️ 天亮了</h2>${deaths.length>0?`<p>昨夜死亡：</p>${deaths.map(p=>`<div class="death-item">💀 ${p.name}</div>`).join('')}`:`<div class="no-death">昨夜平安无事</div>`}</div>
+    <p class="text-center text-muted">存活：${alivePlayers().length}/${game.players.length}</p>
+    <div class="player-grid">${game.players.map(p=>`<div class="player-card ${p.alive?'':'dead'}"><div class="pc-seat">座位${p.seat}</div><div class="pc-name">${p.name}</div><div class="pc-status">${p.alive?'存活':'💀'}</div></div>`).join('')}</div>
+    <div class="divider"></div>
+    <div class="flex-center gap-8 mb-10"><select class="input-field" style="flex:1;margin:0;width:auto" id="ln-p"><option value="">提名者...</option>${alivePlayers().map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><span>→</span><select class="input-field" style="flex:1;margin:0;width:auto" id="ln-t"><option value="">被提名者...</option>${alivePlayers().map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><button class="btn btn-primary btn-sm" id="ln-add">添加</button></div>
+    <div id="ln-noms"></div>
+    <div class="divider"></div><div class="flex-center"><button class="btn btn-secondary" id="ln-end">结束今天 →</button></div></div>
+  `;
+  let noms=[];
+  $('ln-add').addEventListener('click',()=>{const pid=parseInt($('ln-p').value),tid=parseInt($('ln-t').value);if(!pid||!tid){toast('请选择');return}if(pid===tid){toast('不能提名自己');return}const p=getPlayer(pid),t=getPlayer(tid);if(p.nominatedToday){toast(`${p.name}已提名过`);return}if(t.wasNominatedToday){toast(`${t.name}已被提名过`);return}p.nominatedToday=true;t.wasNominatedToday=true;noms.push({proposer:pid,target:tid,result:null});logEvent('day',`${p.name} 提名 ${t.name}`);renderLN()});
+  function renderLN(){$('ln-noms').innerHTML=noms.map((n,i)=>{const p=getPlayer(n.proposer),t=getPlayer(n.target);return`<div class="player-row"><span style="flex:1"><b class="text-gold">${p.name}</b> → <b class="text-red">${t.name}</b></span>${n.result===null?`<button class="btn btn-sm btn-secondary" data-lv="${i}">投票</button>`:`<span class="conn-status ${n.result==='passed'?'online':'offline'}">${n.result==='passed'?'通过':'未通过'}</span>`}</div>`}).join('');$('ln-noms').querySelectorAll('[data-lv]')?.forEach(b=>b.addEventListener('click',()=>{const n=noms[parseInt(b.dataset.lv)];const t=getPlayer(n.target);const alive=alivePlayers().filter(p=>p.id!==n.target);let votes={};$('app').innerHTML=`${renderHeader()}<div class="card"><div class="card-title"><span class="icon">🗳️</span> ${getPlayer(n.proposer).name} → ${t.name}</div><div id="lv-rows">${alive.map(p=>`<div class="vote-row"><span class="vn">${p.name}</span><button class="vote-btn yes" data-id="${p.id}" data-v="yes">✓</button><button class="vote-btn no" data-id="${p.id}" data-v="no">✗</button></div>`).join('')}</div><div class="text-center mt-14"><button class="btn btn-gold" id="lv-fin">确认结果</button><button class="btn btn-ghost" id="lv-back">返回</button></div><div id="lv-result"></div></div>`;document.querySelectorAll('.vote-btn').forEach(vb=>vb.addEventListener('click',()=>{const pid=vb.dataset.id;document.querySelectorAll(`.vote-btn[data-id="${pid}"]`).forEach(x=>x.classList.remove('active'));vb.classList.add('active');votes[pid]=vb.dataset.v}));$('lv-fin').addEventListener('click',()=>{const yes=Object.values(votes).filter(v=>v==='yes').length;const need=Math.floor(alive.length/2)+1;const pass=yes>=need;n.result=pass?'passed':'failed';if(pass){if(t.role==='virgin'){const prop=getPlayer(n.proposer);if(prop.roleData.type==='townsfolk'){prop.alive=false;game.executedToday=prop.id;logEvent('day',`${prop.name}因提名处女被处决`)}else{t.alive=false;game.executedToday=t.id;logEvent('day',`${t.name}被处决`)}}else{t.alive=false;game.executedToday=t.id;logEvent('day',`${t.name}被处决`);if(t.role==='saint'){showGameOver('evil');return}}const w=checkWin();if(w){showGameOver(w);return}}$('lv-result').innerHTML=`<div class="day-announce">${pass?`✅ 通过！${t.name}被处决`:`❌ 未通过（${yes}/${need}票）`}</div>`;setTimeout(()=>{deaths.length=0;finishLocalNight()},2000)});$('lv-back').addEventListener('click',()=>{deaths.length=0;finishLocalNight()})}))}
+  $('ln-end').addEventListener('click',()=>{logEvent('day',`第${game.day}天结束`);game.phase='night';game.day++;game.nightStep=0;game.nightActions=getNightActions(false);game.nominations=[];game.executedToday=null;game.poisonedPlayer=null;game.protectedPlayer=null;game.players.forEach(p=>{p.nominatedToday=false;p.wasNominatedToday=false});logEvent('night',`第${game.day}夜降临`);showLocalNightOverview()});
+}
+
+// ============================================================
+//  角色图鉴
+// ============================================================
+function showRoleRef(){
+  $('app').innerHTML=`
+    ${renderHeader()}
+    <div class="card"><div class="card-title"><span class="icon">📖</span> 角色图鉴</div>
+    <input class="input-field" id="rr-search" placeholder="🔍 搜索角色...">
+    <div class="role-ref-list" id="rr-list">${Object.entries(ROLES).map(([k,r])=>{const tc=r.team==='good'?'var(--green)':'var(--red)';return`<div class="player-row" style="flex-direction:column;align-items:flex-start;gap:4px"><div class="flex-between" style="width:100%"><div><span style="font-size:20px">${r.icon}</span> <b>${r.name}</b> <span class="text-muted" style="font-size:12px">${r.en}</span></div><span class="role-chip ${r.type}">${typeName(r.type)}</span></div><div class="text-muted" style="font-size:13px">${r.desc}</div><div class="text-gold" style="font-size:12px">⚡ ${r.ability}</div></div>`}).join('')}</div>
+    <div class="mt-14 text-center"><button class="btn btn-ghost" id="rr-back">← 返回</button></div></div>
+  `;
+  $('rr-search').addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase();
+    $('rr-list').innerHTML=Object.entries(ROLES).filter(([k,r])=>!q||r.name.includes(q)||r.en.toLowerCase().includes(q)).map(([k,r])=>{return`<div class="player-row" style="flex-direction:column;align-items:flex-start;gap:4px"><div class="flex-between" style="width:100%"><div><span style="font-size:20px">${r.icon}</span> <b>${r.name}</b> <span class="text-muted" style="font-size:12px">${r.en}</span></div><span class="role-chip ${r.type}">${typeName(r.type)}</span></div><div class="text-muted" style="font-size:13px">${r.desc}</div><div class="text-gold" style="font-size:12px">⚡ ${r.ability}</div></div>`}).join('');
+  });
+  $('rr-back').addEventListener('click',()=>{if(game.phase==='home')renderHome();else if(game.mode==='storyteller')initStoryteller();else renderHome()});
+}
+
+// ============================================================
+//  初始化
+// ============================================================
+renderHome();
+</script>
+</body>
+</html>
